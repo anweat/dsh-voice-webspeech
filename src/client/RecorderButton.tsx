@@ -29,9 +29,10 @@ export function RecorderButton({ inputActions, input, t }: RecorderButtonProps) 
   const [overlay, setOverlay] = useState<{ kind: OverlayKind; text: string }>({ kind: null, text: '' })
   const [supported] = useState(() => isWebSpeechSupported())
 
-  const pressedRef = useRef(false)
+  // activeRef = "识别应当持续"：hold 模式=按住期间；toggle 模式=切换开启期间
+  const activeRef = useRef(false)
   const fatalRef = useRef(false)
-  // 跨识别会话累积（按住期间每次短语结束都重启，文本在此累积）
+  // 跨识别会话累积（按住/切换开启期间每次短语结束都重启，文本在此累积）
   const accumulatedRef = useRef('')
   const recognizerRef = useRef<SpeechRecognizer | null>(null)
   const prefsRef = useRef(prefs); prefsRef.current = prefs
@@ -85,12 +86,12 @@ export function RecorderButton({ inputActions, input, t }: RecorderButtonProps) 
           setRecording(false)
           return
         }
-        if (pressedRef.current) {
-          // 仍按住：立即重启，继续下一段听写（跨短语累积）
+        if (activeRef.current) {
+          // 仍应持续：立即重启，继续下一段听写（跨短语累积）
           recognizer.start()
           return
         }
-        // 已松手：交付累积文本
+        // 已停止：交付累积文本
         const text = accumulatedRef.current
         accumulatedRef.current = ''
         setRecording(false)
@@ -106,25 +107,46 @@ export function RecorderButton({ inputActions, input, t }: RecorderButtonProps) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefs.lang])
 
-  const handlePointerDown = (event: ReactPointerEvent<HTMLButtonElement>): void => {
-    event.preventDefault()
-    event.currentTarget.setPointerCapture(event.pointerId)
+  const startRecognition = (): void => {
     if (!supported) {
       setOverlay({ kind: 'error', text: t('unsupported') })
       return
     }
-    pressedRef.current = true
+    activeRef.current = true
     fatalRef.current = false
     accumulatedRef.current = ''
     setOverlay({ kind: null, text: '' })
     recognizerRef.current?.start()
   }
 
-  const handlePointerEnd = (): void => {
-    if (!pressedRef.current) return
-    pressedRef.current = false
+  const stopRecognition = (): void => {
+    activeRef.current = false
     recognizerRef.current?.stop()
   }
+
+  // hold 模式：按住识别、松手停止
+  const handlePointerDown = (event: ReactPointerEvent<HTMLButtonElement>): void => {
+    if (prefsRef.current.mode !== 'hold') return
+    event.preventDefault()
+    event.currentTarget.setPointerCapture(event.pointerId)
+    if (!activeRef.current) startRecognition()
+  }
+
+  const handlePointerEnd = (): void => {
+    if (prefsRef.current.mode !== 'hold') return
+    if (activeRef.current) stopRecognition()
+  }
+
+  // toggle 模式：点击切换（点一下开始，再点一下停止）
+  const handleClick = (): void => {
+    if (prefsRef.current.mode !== 'toggle') return
+    if (activeRef.current) stopRecognition()
+    else startRecognition()
+  }
+
+  const title = supported
+    ? (prefs.mode === 'hold' ? t('holdToTalk') : t('tapToTalk'))
+    : t('unsupported')
 
   return (
     <div className={css.wrap}>
@@ -141,10 +163,11 @@ export function RecorderButton({ inputActions, input, t }: RecorderButtonProps) 
         className={recording ? css.micActive : css.mic}
         aria-label={t('buttonLabel')}
         aria-pressed={recording}
-        title={supported ? t('holdToTalk') : t('unsupported')}
+        title={title}
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerEnd}
         onPointerCancel={handlePointerEnd}
+        onClick={handleClick}
         onContextMenu={(event) => { event.preventDefault() }}
       >
         <svg className={css.icon} viewBox="0 0 24 24" aria-hidden="true">

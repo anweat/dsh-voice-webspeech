@@ -5,10 +5,13 @@
  * trigger an infinite re-render ("Maximum update depth exceeded") and crash
  * the slot entry. current is replaced only on real updates.
  */
+export type InteractionMode = 'toggle' | 'hold';
 export interface VoiceWebspeechPrefs {
     /** BCP-47 recognition language (e.g. zh-CN, en-US). */
     lang: string;
-    /** Auto-submit on release (hold-to-talk → send); false = insert into draft for review. */
+    /** Interaction: 'toggle' (tap to start/stop) or 'hold' (press-and-hold to talk). */
+    mode: InteractionMode;
+    /** Auto-submit on stop; false = insert into draft for review. */
     autoSend: boolean;
     /** When not auto-sending, append to the existing draft instead of replacing it. */
     append: boolean;

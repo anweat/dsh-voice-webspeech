@@ -6,10 +6,14 @@
  * the slot entry. current is replaced only on real updates.
  */
 
+export type InteractionMode = 'toggle' | 'hold'
+
 export interface VoiceWebspeechPrefs {
   /** BCP-47 recognition language (e.g. zh-CN, en-US). */
   lang: string
-  /** Auto-submit on release (hold-to-talk → send); false = insert into draft for review. */
+  /** Interaction: 'toggle' (tap to start/stop) or 'hold' (press-and-hold to talk). */
+  mode: InteractionMode
+  /** Auto-submit on stop; false = insert into draft for review. */
   autoSend: boolean
   /** When not auto-sending, append to the existing draft instead of replacing it. */
   append: boolean
@@ -19,6 +23,7 @@ export interface VoiceWebspeechPrefs {
 
 export const DEFAULT_PREFS: VoiceWebspeechPrefs = {
   lang: 'zh-CN',
+  mode: 'toggle',
   autoSend: false,
   append: true,
   showInterim: true,
@@ -30,6 +35,7 @@ function mergePrefs(raw: unknown): VoiceWebspeechPrefs {
   const input = (raw ?? {}) as Partial<VoiceWebspeechPrefs>
   return {
     lang: typeof input.lang === 'string' && input.lang !== '' ? input.lang : DEFAULT_PREFS.lang,
+    mode: input.mode === 'hold' ? 'hold' : DEFAULT_PREFS.mode,
     autoSend: typeof input.autoSend === 'boolean' ? input.autoSend : DEFAULT_PREFS.autoSend,
     append: typeof input.append === 'boolean' ? input.append : DEFAULT_PREFS.append,
     showInterim: typeof input.showInterim === 'boolean' ? input.showInterim : DEFAULT_PREFS.showInterim,
