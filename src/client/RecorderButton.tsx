@@ -35,6 +35,8 @@ export function RecorderButton({ inputActions, input, t }: RecorderButtonProps) 
   // 跨识别会话累积（按住/切换开启期间每次短语结束都重启，文本在此累积）
   const accumulatedRef = useRef('')
   const recognizerRef = useRef<SpeechRecognizer | null>(null)
+  // 错误提示自动消失的定时器
+  const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const prefsRef = useRef(prefs); prefsRef.current = prefs
   const inputActionsRef = useRef(inputActions); inputActionsRef.current = inputActions
   const inputRef = useRef(input); inputRef.current = input
@@ -78,6 +80,11 @@ export function RecorderButton({ inputActions, input, t }: RecorderButtonProps) 
         if (isFatal(error.code)) {
           fatalRef.current = true
           setOverlay({ kind: 'error', text: messageOf(error.code, tRef.current) })
+          if (errorTimerRef.current !== null) clearTimeout(errorTimerRef.current)
+          errorTimerRef.current = setTimeout(() => {
+            setOverlay({ kind: null, text: '' })
+            errorTimerRef.current = null
+          }, 4000)
         }
       },
       onEnd: () => {
@@ -101,6 +108,7 @@ export function RecorderButton({ inputActions, input, t }: RecorderButtonProps) 
     })
     recognizerRef.current = recognizer
     return () => {
+      if (errorTimerRef.current !== null) clearTimeout(errorTimerRef.current)
       recognizer.dispose()
       recognizerRef.current = null
     }
@@ -108,8 +116,16 @@ export function RecorderButton({ inputActions, input, t }: RecorderButtonProps) 
   }, [prefs.lang])
 
   const startRecognition = (): void => {
+    if (errorTimerRef.current !== null) {
+      clearTimeout(errorTimerRef.current)
+      errorTimerRef.current = null
+    }
     if (!supported) {
       setOverlay({ kind: 'error', text: t('unsupported') })
+      errorTimerRef.current = setTimeout(() => {
+        setOverlay({ kind: null, text: '' })
+        errorTimerRef.current = null
+      }, 4000)
       return
     }
     activeRef.current = true
