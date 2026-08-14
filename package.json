@@ -113,5 +113,10 @@
     "tsdown": "^0.22.2",
     "typescript": "^5.6.0"
   },
-  "packageManager": "pnpm@9.15.9"
+  "packageManager": "pnpm@9.15.9",
+  "dependencies": {
+    "@huggingface/transformers": "^3",
+    "onnxruntime-common": "^1.27.0",
+    "onnxruntime-web": "^1.27.0"
+  }
 }

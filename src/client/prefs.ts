@@ -1,29 +1,34 @@
 /**
- * Client preferences (localStorage, same pattern as other DSH web plugins).
- * NOTE: loadPrefs MUST return a stable reference — useSyncExternalStore
- * compares snapshots with Object.is; a freshly-built object per call would
- * trigger an infinite re-render ("Maximum update depth exceeded") and crash
- * the slot entry. current is replaced only on real updates.
+ * Client preferences (localStorage). loadPrefs MUST return a stable reference
+ * (useSyncExternalStore compares snapshots with Object.is).
  */
+import type { LocalModelId } from './models.ts'
 
 export type InteractionMode = 'toggle' | 'hold'
+export type BackendId = 'webspeech' | 'local'
 
 export interface VoiceWebspeechPrefs {
   /** BCP-47 recognition language (e.g. zh-CN, en-US). */
   lang: string
-  /** Interaction: 'toggle' (tap to start/stop) or 'hold' (press-and-hold to talk). */
+  /** Interaction: 'toggle' (tap to start/stop) or 'hold' (press-and-hold). */
   mode: InteractionMode
+  /** Recognition backend: browser Web Speech (zero download) or a local WASM model. */
+  backend: BackendId
+  /** Which local model to use when backend === 'local'. */
+  localModel: LocalModelId
   /** Auto-submit on stop; false = insert into draft for review. */
   autoSend: boolean
   /** When not auto-sending, append to the existing draft instead of replacing it. */
   append: boolean
-  /** Show live interim text in the overlay while listening. */
+  /** Show live interim text while listening (Web Speech backend only). */
   showInterim: boolean
 }
 
 export const DEFAULT_PREFS: VoiceWebspeechPrefs = {
   lang: 'zh-CN',
   mode: 'toggle',
+  backend: 'webspeech',
+  localModel: 'whisper-tiny',
   autoSend: false,
   append: true,
   showInterim: true,
@@ -36,6 +41,10 @@ function mergePrefs(raw: unknown): VoiceWebspeechPrefs {
   return {
     lang: typeof input.lang === 'string' && input.lang !== '' ? input.lang : DEFAULT_PREFS.lang,
     mode: input.mode === 'hold' ? 'hold' : DEFAULT_PREFS.mode,
+    backend: input.backend === 'local' ? 'local' : DEFAULT_PREFS.backend,
+    localModel: input.localModel === 'whisper-base' || input.localModel === 'moonshine-tiny'
+      ? input.localModel
+      : DEFAULT_PREFS.localModel,
     autoSend: typeof input.autoSend === 'boolean' ? input.autoSend : DEFAULT_PREFS.autoSend,
     append: typeof input.append === 'boolean' ? input.append : DEFAULT_PREFS.append,
     showInterim: typeof input.showInterim === 'boolean' ? input.showInterim : DEFAULT_PREFS.showInterim,
@@ -50,8 +59,6 @@ function storage(): Storage | undefined {
   }
 }
 
-// Stable snapshot: initialized once from localStorage at module load, replaced
-// only by updatePrefs. loadPrefs always returns this same reference.
 let current: VoiceWebspeechPrefs = (() => {
   const store = storage()
   if (store !== undefined) {

@@ -4,7 +4,7 @@
  * Chrome routes to Google/Chrome speech. Interim results, final accumulation,
  * abort semantics, and a safe no-op recognizer for unsupported browsers.
  */
-export type RecognitionPhase = 'idle' | 'recording' | 'stopping';
+export type RecognitionPhase = 'idle' | 'recording' | 'stopping' | 'processing';
 export interface RecognitionError {
     readonly code: string;
     readonly message: string;
@@ -12,6 +12,8 @@ export interface RecognitionError {
 export interface RecognitionHooks {
     onStart?: () => void;
     onInterim?: (text: string) => void;
+    /** Local backend: entered the transcribing stage after capture stopped. */
+    onProcessing?: () => void;
     onResult?: (text: string) => void;
     onError?: (error: RecognitionError) => void;
     onEnd?: () => void;

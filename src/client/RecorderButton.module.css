@@ -65,6 +65,11 @@
   color: #ffb4b8;
 }
 
+.overlayProcessing {
+  background: var(--ds-color-bg-elevated, #2a2b30);
+  color: var(--ds-color-text-primary, #e8eaed);
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.55; }

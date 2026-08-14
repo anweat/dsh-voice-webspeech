@@ -67,6 +67,16 @@ export default {
     'import.meta.env': JSON.stringify({ MODE: process.env.NODE_ENV ?? 'production' }),
   },
   plugins: [{
+    // transformers.js ships a node build and a web build; force the browser one
+    // (otherwise rolldown bundles onnxruntime-node + sharp, which are Node-only).
+    name: 'dsh-transformers-browser',
+    resolveId(source: string) {
+      if (source === '@huggingface/transformers') {
+        return resolvePath(REPOSITORY_ROOT, 'node_modules/@huggingface/transformers/dist/transformers.web.js')
+      }
+      return null
+    },
+  }, {
     name: 'dsh-client-bundle-purity',
     resolveId(source: string) {
       if (!source.startsWith('@deepseek-ai/')) return null

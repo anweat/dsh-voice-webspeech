@@ -2,6 +2,8 @@ import { useState, useSyncExternalStore } from 'react'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import { loadPrefs, subscribePrefs, updatePrefs, type VoiceWebspeechPrefs } from './prefs.ts'
 import { detectBrowserSpeech } from './detect.ts'
+import { downloadLocalModel, isLocalModelReady } from './local.ts'
+import { LOCAL_MODELS, localModelSpec, type LocalModelId } from './models.ts'
 import css from './SettingsCard.module.css'
 
 export type SettingsCardProps = PropsLocale<'voice.webspeech'>
@@ -24,16 +26,29 @@ export function SettingsCard({ t }: SettingsCardProps) {
   const [open, setOpen] = useState(false)
   const prefs = useSyncExternalStore(subscribePrefs, loadPrefs)
   const [info] = useState(() => detectBrowserSpeech())
+  const [downloading, setDownloading] = useState<{ model: LocalModelId; percent: number } | null>(null)
+  const [downloadError, setDownloadError] = useState<string | null>(null)
+  const [readyTick, setReadyTick] = useState(0)
   const set = (patch: Partial<VoiceWebspeechPrefs>): void => { updatePrefs(patch) }
+
+  const modelReady = isLocalModelReady(prefs.localModel)
+
+  const handleDownload = async (id: LocalModelId): Promise<void> => {
+    setDownloading({ model: id, percent: 0 })
+    setDownloadError(null)
+    try {
+      await downloadLocalModel(id, (p) => { setDownloading({ model: id, percent: p.percent }) })
+      setDownloading(null)
+      setReadyTick(v => v + 1)
+    } catch (error) {
+      setDownloading(null)
+      setDownloadError(error instanceof Error ? error.message : String(error))
+    }
+  }
 
   return (
     <li className={open ? css.card + ' ' + css.cardOpen : css.card}>
-      <button
-        type="button"
-        className={css.header}
-        aria-expanded={open}
-        onClick={() => { setOpen(!open) }}
-      >
+      <button type="button" className={css.header} aria-expanded={open} onClick={() => { setOpen(!open) }}>
         <span className={css.headText}>
           <span className={css.name}>{t('settingsTitle')}</span>
           <span className={css.description}>{t('settingsDesc')}</span>
@@ -47,12 +62,7 @@ export function SettingsCard({ t }: SettingsCardProps) {
         <div className={css.body}>
           <div className={css.field}>
             <label className={css.label} htmlFor="voice-webspeech-mode">{t('modeTitle')}</label>
-            <select
-              id="voice-webspeech-mode"
-              className={css.select}
-              value={prefs.mode}
-              onChange={event => { set({ mode: event.currentTarget.value === 'hold' ? 'hold' : 'toggle' }) }}
-            >
+            <select id="voice-webspeech-mode" className={css.select} value={prefs.mode} onChange={event => { set({ mode: event.currentTarget.value === 'hold' ? 'hold' : 'toggle' }) }}>
               <option value="toggle">{t('modeToggle')}</option>
               <option value="hold">{t('modeHold')}</option>
             </select>
@@ -60,29 +70,56 @@ export function SettingsCard({ t }: SettingsCardProps) {
 
           <div className={css.field}>
             <label className={css.label} htmlFor="voice-webspeech-lang">{t('langTitle')}</label>
-            <select
-              id="voice-webspeech-lang"
-              className={css.select}
-              value={prefs.lang}
-              onChange={event => { set({ lang: event.currentTarget.value }) }}
-            >
+            <select id="voice-webspeech-lang" className={css.select} value={prefs.lang} onChange={event => { set({ lang: event.currentTarget.value }) }}>
               {LANG_OPTIONS.map(option => (
                 <option key={option.value} value={option.value}>{option.label}</option>
               ))}
             </select>
           </div>
 
+          <div className={css.field}>
+            <label className={css.label} htmlFor="voice-webspeech-backend">{t('backendTitle')}</label>
+            <select id="voice-webspeech-backend" className={css.select} value={prefs.backend} onChange={event => { set({ backend: event.currentTarget.value === 'local' ? 'local' : 'webspeech' }) }}>
+              <option value="webspeech">{t('backendWebSpeech')}</option>
+              <option value="local">{t('backendLocal')}</option>
+            </select>
+          </div>
+
+          {prefs.backend === 'local' && (
+            <div className={css.field}>
+              <label className={css.label} htmlFor="voice-webspeech-model">{t('modelTitle')}</label>
+              <select id="voice-webspeech-model" className={css.select} value={prefs.localModel} onChange={event => { set({ localModel: event.currentTarget.value as LocalModelId }) }}>
+                {LOCAL_MODELS.map(m => (
+                  <option key={m.id} value={m.id}>{m.label}（{m.sizeHint}）</option>
+                ))}
+              </select>
+              <p className={css.hint}>{localModelSpec(prefs.localModel).note}</p>
+            </div>
+          )}
+
+          {prefs.backend === 'local' && (
+            <div className={css.field}>
+              <span className={css.label}>{t('downloadModel')}</span>
+              {modelReady ? (
+                <p className={css.hint}>{t('modelReady')}</p>
+              ) : (
+                <>
+                  <button type="button" className={css.button} disabled={downloading !== null} onClick={() => { void handleDownload(prefs.localModel) }}>
+                    {downloading !== null ? t('downloading', { percent: downloading.percent }) : t('downloadModel')}
+                  </button>
+                  {downloading !== null && <p className={css.hint}>{t('downloading', { percent: downloading.percent })}</p>}
+                </>
+              )}
+              {downloadError !== null && <p className={css.hint}>{t('downloadFailed', { error: downloadError })}</p>}
+            </div>
+          )}
+
           <label className={css.toggleRow}>
             <span className={css.toggleText}>
               <span className={css.label}>{t('autoSendTitle')}</span>
               <span className={css.hint}>{t('autoSendDesc')}</span>
             </span>
-            <input
-              type="checkbox"
-              className={css.toggle}
-              checked={prefs.autoSend}
-              onChange={event => { set({ autoSend: event.currentTarget.checked }) }}
-            />
+            <input type="checkbox" className={css.toggle} checked={prefs.autoSend} onChange={event => { set({ autoSend: event.currentTarget.checked }) }} />
           </label>
 
           <label className={css.toggleRow}>
@@ -90,12 +127,7 @@ export function SettingsCard({ t }: SettingsCardProps) {
               <span className={css.label}>{t('appendTitle')}</span>
               <span className={css.hint}>{t('appendDesc')}</span>
             </span>
-            <input
-              type="checkbox"
-              className={css.toggle}
-              checked={prefs.append}
-              onChange={event => { set({ append: event.currentTarget.checked }) }}
-            />
+            <input type="checkbox" className={css.toggle} checked={prefs.append} onChange={event => { set({ append: event.currentTarget.checked }) }} />
           </label>
 
           <label className={css.toggleRow}>
@@ -103,12 +135,7 @@ export function SettingsCard({ t }: SettingsCardProps) {
               <span className={css.label}>{t('interimTitle')}</span>
               <span className={css.hint}>{t('interimDesc')}</span>
             </span>
-            <input
-              type="checkbox"
-              className={css.toggle}
-              checked={prefs.showInterim}
-              onChange={event => { set({ showInterim: event.currentTarget.checked }) }}
-            />
+            <input type="checkbox" className={css.toggle} checked={prefs.showInterim} onChange={event => { set({ showInterim: event.currentTarget.checked }) }} />
           </label>
 
           <div className={css.field}>

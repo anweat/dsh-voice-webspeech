@@ -141,3 +141,26 @@
   margin-top: 2px;
   accent-color: var(--dsw-alias-brand-primary);
 }
+
+.button {
+  align-self: flex-start;
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  cursor: pointer;
+  background: var(--dsw-alias-label-primary);
+  color: var(--dsw-alias-bg-layer-3);
+}
+
+.button:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
+.button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

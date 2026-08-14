@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type PointerEvent as ReactPointerEvent } from 'react'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
-import { createWebSpeechRecognizer, isWebSpeechSupported, type SpeechRecognizer } from './webspeech.ts'
+import { isWebSpeechSupported, type SpeechRecognizer } from './webspeech.ts'
+import { createBackendRecognizer } from './backend.ts'
 import { loadPrefs, subscribePrefs } from './prefs.ts'
 import css from './RecorderButton.module.css'
 
@@ -15,7 +16,7 @@ export type RecorderButtonProps = {
   input?: { readonly draft: string }
 } & PropsLocale<'voice.webspeech'>
 
-type OverlayKind = 'recording' | 'error' | null
+type OverlayKind = 'recording' | 'processing' | 'error' | null
 
 /** Fatal error codes: recognition cannot proceed (permission/capture/network). */
 function isFatal(code: string): boolean {
@@ -26,16 +27,14 @@ function isFatal(code: string): boolean {
 export function RecorderButton({ inputActions, input, t }: RecorderButtonProps) {
   const prefs = useSyncExternalStore(subscribePrefs, loadPrefs)
   const [recording, setRecording] = useState(false)
+  const [processing, setProcessing] = useState(false)
   const [overlay, setOverlay] = useState<{ kind: OverlayKind; text: string }>({ kind: null, text: '' })
-  const [supported] = useState(() => isWebSpeechSupported())
+  const supported = prefs.backend === 'local' || isWebSpeechSupported()
 
-  // activeRef = "识别应当持续"：hold 模式=按住期间；toggle 模式=切换开启期间
   const activeRef = useRef(false)
   const fatalRef = useRef(false)
-  // 跨识别会话累积（按住/切换开启期间每次短语结束都重启，文本在此累积）
   const accumulatedRef = useRef('')
   const recognizerRef = useRef<SpeechRecognizer | null>(null)
-  // 错误提示自动消失的定时器
   const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const prefsRef = useRef(prefs); prefsRef.current = prefs
   const inputActionsRef = useRef(inputActions); inputActionsRef.current = inputActions
@@ -60,8 +59,9 @@ export function RecorderButton({ inputActions, input, t }: RecorderButtonProps) 
       }
     }
 
-    const recognizer = createWebSpeechRecognizer(prefs.lang, {
+    const recognizer = createBackendRecognizer(prefs, {
       onStart: () => {
+        setProcessing(false)
         setRecording(true)
         setOverlay({ kind: 'recording', text: tRef.current('listening') })
       },
@@ -70,13 +70,17 @@ export function RecorderButton({ inputActions, input, t }: RecorderButtonProps) 
         const base = tRef.current('listening')
         setOverlay({ kind: 'recording', text: text !== '' ? `${base} ${text}` : base })
       },
+      onProcessing: () => {
+        setProcessing(true)
+        setOverlay({ kind: 'processing', text: tRef.current('transcribing') })
+      },
       onResult: (text) => {
         const part = text.trim()
         if (part === '') return
         accumulatedRef.current = accumulatedRef.current === '' ? part : accumulatedRef.current + ' ' + part
       },
       onError: (error) => {
-        if (error.code === 'no-speech' || error.code === 'aborted') return // 非致命：由 onEnd 重启
+        if (error.code === 'no-speech' || error.code === 'aborted') return
         if (isFatal(error.code)) {
           fatalRef.current = true
           setOverlay({ kind: 'error', text: messageOf(error.code, tRef.current) })
@@ -91,17 +95,17 @@ export function RecorderButton({ inputActions, input, t }: RecorderButtonProps) 
         if (fatalRef.current) {
           fatalRef.current = false
           setRecording(false)
+          setProcessing(false)
           return
         }
         if (activeRef.current) {
-          // 仍应持续：立即重启，继续下一段听写（跨短语累积）
           recognizer.start()
           return
         }
-        // 已停止：交付累积文本
         const text = accumulatedRef.current
         accumulatedRef.current = ''
         setRecording(false)
+        setProcessing(false)
         setOverlay({ kind: null, text: '' })
         deliver(text)
       },
@@ -113,7 +117,7 @@ export function RecorderButton({ inputActions, input, t }: RecorderButtonProps) 
       recognizerRef.current = null
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prefs.lang])
+  }, [prefs.lang, prefs.backend, prefs.localModel])
 
   const startRecognition = (): void => {
     if (errorTimerRef.current !== null) {
@@ -140,7 +144,6 @@ export function RecorderButton({ inputActions, input, t }: RecorderButtonProps) 
     recognizerRef.current?.stop()
   }
 
-  // hold 模式：按住识别、松手停止
   const handlePointerDown = (event: ReactPointerEvent<HTMLButtonElement>): void => {
     if (prefsRef.current.mode !== 'hold') return
     event.preventDefault()
@@ -153,7 +156,6 @@ export function RecorderButton({ inputActions, input, t }: RecorderButtonProps) 
     if (activeRef.current) stopRecognition()
   }
 
-  // toggle 模式：点击切换（点一下开始，再点一下停止）
   const handleClick = (): void => {
     if (prefsRef.current.mode !== 'toggle') return
     if (activeRef.current) stopRecognition()
@@ -164,11 +166,13 @@ export function RecorderButton({ inputActions, input, t }: RecorderButtonProps) 
     ? (prefs.mode === 'hold' ? t('holdToTalk') : t('tapToTalk'))
     : t('unsupported')
 
+  const busy = recording || processing
+
   return (
     <div className={css.wrap}>
       {(overlay.kind !== null) && (
         <div
-          className={overlay.kind === 'error' ? css.overlayError : css.overlay}
+          className={overlay.kind === 'error' ? css.overlayError : overlay.kind === 'processing' ? css.overlayProcessing : css.overlay}
           role={overlay.kind === 'error' ? 'alert' : 'status'}
         >
           {overlay.text}
@@ -176,9 +180,9 @@ export function RecorderButton({ inputActions, input, t }: RecorderButtonProps) 
       )}
       <button
         type="button"
-        className={recording ? css.micActive : css.mic}
+        className={busy ? css.micActive : css.mic}
         aria-label={t('buttonLabel')}
-        aria-pressed={recording}
+        aria-pressed={busy}
         title={title}
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerEnd}
@@ -205,6 +209,7 @@ function messageOf(code: string, t: RecorderButtonProps['t']): string {
     case 'network': return t('network')
     case 'no-speech': return t('noSpeech')
     case 'audio-capture': return t('audioCapture')
+    case 'local-error': return t('failure', { code: 'local' })
     default: return t('failure', { code })
   }
 }
