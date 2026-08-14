@@ -1,5 +1,9 @@
 /**
  * Client preferences (localStorage, same pattern as other DSH web plugins).
+ * NOTE: loadPrefs MUST return a stable reference — useSyncExternalStore
+ * compares snapshots with Object.is; a freshly-built object per call would
+ * trigger an infinite re-render ("Maximum update depth exceeded") and crash
+ * the slot entry. current is replaced only on real updates.
  */
 export interface VoiceWebspeechPrefs {
     /** BCP-47 recognition language (e.g. zh-CN, en-US). */

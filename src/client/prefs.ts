@@ -1,5 +1,9 @@
 /**
  * Client preferences (localStorage, same pattern as other DSH web plugins).
+ * NOTE: loadPrefs MUST return a stable reference — useSyncExternalStore
+ * compares snapshots with Object.is; a freshly-built object per call would
+ * trigger an infinite re-render ("Maximum update depth exceeded") and crash
+ * the slot entry. current is replaced only on real updates.
  */
 
 export interface VoiceWebspeechPrefs {
@@ -40,24 +44,28 @@ function storage(): Storage | undefined {
   }
 }
 
-let memoryCache: VoiceWebspeechPrefs | null = null
-
-export function loadPrefs(): VoiceWebspeechPrefs {
+// Stable snapshot: initialized once from localStorage at module load, replaced
+// only by updatePrefs. loadPrefs always returns this same reference.
+let current: VoiceWebspeechPrefs = (() => {
   const store = storage()
   if (store !== undefined) {
     try {
       const raw = store.getItem(PREFS_KEY)
       if (raw !== null) return mergePrefs(JSON.parse(raw) as unknown)
     } catch {
-      // fall through to cache/default
+      // fall through to defaults
     }
   }
-  return memoryCache ?? { ...DEFAULT_PREFS }
+  return { ...DEFAULT_PREFS }
+})()
+
+export function loadPrefs(): VoiceWebspeechPrefs {
+  return current
 }
 
 export function updatePrefs(patch: Partial<VoiceWebspeechPrefs>): VoiceWebspeechPrefs {
-  const next = mergePrefs({ ...loadPrefs(), ...patch })
-  memoryCache = next
+  const next = mergePrefs({ ...current, ...patch })
+  current = next
   const store = storage()
   if (store !== undefined) {
     try {
