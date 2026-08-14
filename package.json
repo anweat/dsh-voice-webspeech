@@ -46,7 +46,8 @@
     "dev:link-dsh": "node scripts/link-dsh-workspace.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "prepack": "pnpm run build",
-    "prepublishOnly": "pnpm run build"
+    "prepublishOnly": "pnpm run build",
+    "prepare": "npm run build"
   },
   "repository": {
     "type": "git",
