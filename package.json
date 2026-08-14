@@ -1,0 +1,110 @@
+{
+  "name": "dsh-voice-webspeech",
+  "version": "0.1.0",
+  "description": "DSH Web 语音输入插件：零服务端、零密钥、零模型下载，直接使用浏览器内置 Web Speech API（Edge=微软 Azure 语音，Chrome=Google 语音）。",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "types": "./lib/types/client/index.d.ts",
+      "default": "./lib/client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "dsh": {
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-settings"
+      ],
+      "platform": "web"
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "files": [
+    "lib/**/*.js",
+    "lib/types/**/*.d.ts",
+    "cordis.patch.yml",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node -e \"fs.rmSync('lib',{recursive:true,force:true})\" && tsc -p tsconfig.json && tsdown",
+    "dev:link-dsh": "node scripts/link-dsh-workspace.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prepack": "pnpm run build",
+    "prepublishOnly": "pnpm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anweat/dsh-voice-webspeech.git"
+  },
+  "license": "MIT",
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "voice",
+    "speech-to-text",
+    "webspeech",
+    "client-plugin"
+  ],
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=4.0.1-rc.1 <4.1.0",
+    "@deepseek-ai/dsh-client-locale": ">=0.1.0-rc.3 <0.2.0",
+    "@deepseek-ai/dsh-client-runtime": ">=0.1.0-rc.3 <0.2.0",
+    "@deepseek-ai/dsh-client-ui-conversation": ">=0.1.0-rc.3 <0.2.0",
+    "@deepseek-ai/dsh-client-ui-settings": ">=0.1.0-rc.3 <0.2.0",
+    "@deepseek-ai/dsh-client-ui-slots": ">=0.1.0-rc.3 <0.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/cordis": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-client-locale": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-client-runtime": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-client-ui-conversation": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-client-ui-settings": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-client-ui-slots": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "~18.3.1",
+    "@types/react-dom": "~18.3.1",
+    "lightningcss": "^1.32.0",
+    "react": "^18.2.0",
+    "react-dom": "18.2.0",
+    "tsdown": "^0.22.2",
+    "typescript": "^5.6.0"
+  }
+}

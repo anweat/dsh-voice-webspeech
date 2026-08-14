@@ -1,0 +1,5 @@
+# dsh-voice-webspeech bundle patch —— 挂载进 profile 插件树（host 半为空，仅让客户端 bundle 被发现）。
+- insert:
+    - id: dsh-voice-webspeech
+      name: dsh-voice-webspeech
+      config: {}

@@ -1,0 +1,12 @@
+# dependencies
+node_modules/
+
+# archives
+*.tgz
+*.tar.gz
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

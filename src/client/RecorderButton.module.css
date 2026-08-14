@@ -1,0 +1,68 @@
+.wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.mic,
+.micActive {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ds-color-text-secondary, #8a8f98);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.mic:hover {
+  color: var(--ds-color-text-primary, #e8eaed);
+  background: var(--ds-color-bg-hover, rgba(255, 255, 255, 0.08));
+}
+
+.micActive {
+  color: #fff;
+  background: var(--ds-color-danger, #e5484d);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.icon {
+  width: 16px;
+  height: 16px;
+}
+
+.overlay,
+.overlayError {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 340px;
+  min-width: 120px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+  z-index: 30;
+  background: var(--ds-color-bg-elevated, #2a2b30);
+  color: var(--ds-color-text-primary, #e8eaed);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+.overlayError {
+  background: #3d1f21;
+  color: #ffb4b8;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
