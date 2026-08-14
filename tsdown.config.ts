@@ -63,16 +63,20 @@ export default {
   },
   define: {
     'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV ?? 'production'),
+    'import.meta.url': '(globalThis.location?.href ?? "")',
     'import.meta.env.MODE': JSON.stringify(process.env.NODE_ENV ?? 'production'),
     'import.meta.env': JSON.stringify({ MODE: process.env.NODE_ENV ?? 'production' }),
   },
   plugins: [{
-    // transformers.js ships a node build and a web build; force the browser one
-    // (otherwise rolldown bundles onnxruntime-node + sharp, which are Node-only).
+    // Both packages expose Node-first conditional exports. Resolve their browser
+    // artifacts explicitly so the DSH client closure never inherits Node builtins.
     name: 'dsh-transformers-browser',
     resolveId(source: string) {
       if (source === '@huggingface/transformers') {
         return resolvePath(REPOSITORY_ROOT, 'node_modules/@huggingface/transformers/dist/transformers.web.js')
+      }
+      if (source === 'onnxruntime-web') {
+        return resolvePath(REPOSITORY_ROOT, 'node_modules/onnxruntime-web/dist/ort.wasm.min.mjs')
       }
       return null
     },

@@ -17,5 +17,12 @@ import type { Context } from '@deepseek-ai/cordis'
 export const name = 'dsh-voice-webspeech'
 
 export function apply(ctx: Context): void {
-  ctx.logger.info('[dsh-voice-webspeech] loaded — voice input runs entirely in the browser (Web Speech API)')
+  // 只用 console（避免 ctx.logger 服务不可用时抛错导致 fiber 失败、客户端 bundle 不被发现）
+  try {
+    const log = ctx.logger?.info?.bind(ctx.logger)
+    if (typeof log === 'function') log('[dsh-voice-webspeech] loaded')
+    else console.log('[dsh-voice-webspeech] loaded')
+  } catch {
+    console.log('[dsh-voice-webspeech] loaded')
+  }
 }

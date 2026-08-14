@@ -44,6 +44,7 @@
   ],
   "scripts": {
     "build": "node -e \"fs.rmSync('lib',{recursive:true,force:true})\" && tsc -p tsconfig.json && tsdown",
+    "test:client-bundle": "node scripts/check-client-bundle.mjs",
     "dev:link-dsh": "node scripts/link-dsh-workspace.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "prepack": "pnpm run build",
