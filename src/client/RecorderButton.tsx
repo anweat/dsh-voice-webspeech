@@ -17,6 +17,12 @@ export type RecorderButtonProps = {
 
 type OverlayKind = 'recording' | 'error' | null
 
+/** Fatal error codes: recognition cannot proceed (permission/capture/network). */
+function isFatal(code: string): boolean {
+  return code === 'not-allowed' || code === 'service-not-allowed'
+    || code === 'audio-capture' || code === 'network' || code === 'unsupported'
+}
+
 export function RecorderButton({ inputActions, input, t }: RecorderButtonProps) {
   const prefs = useSyncExternalStore(subscribePrefs, loadPrefs)
   const [recording, setRecording] = useState(false)
@@ -24,13 +30,15 @@ export function RecorderButton({ inputActions, input, t }: RecorderButtonProps) 
   const [supported] = useState(() => isWebSpeechSupported())
 
   const pressedRef = useRef(false)
+  const fatalRef = useRef(false)
+  // 跨识别会话累积（按住期间每次短语结束都重启，文本在此累积）
+  const accumulatedRef = useRef('')
   const recognizerRef = useRef<SpeechRecognizer | null>(null)
   const prefsRef = useRef(prefs); prefsRef.current = prefs
   const inputActionsRef = useRef(inputActions); inputActionsRef.current = inputActions
   const inputRef = useRef(input); inputRef.current = input
   const tRef = useRef(t); tRef.current = t
 
-  // (re)build the recognizer when the language changes
   useEffect(() => {
     const deliver = (text: string): void => {
       const trimmed = text.trim()
@@ -60,14 +68,34 @@ export function RecorderButton({ inputActions, input, t }: RecorderButtonProps) 
         setOverlay({ kind: 'recording', text: text !== '' ? `${base} ${text}` : base })
       },
       onResult: (text) => {
-        setOverlay({ kind: null, text: '' })
-        deliver(text)
+        const part = text.trim()
+        if (part === '') return
+        accumulatedRef.current = accumulatedRef.current === '' ? part : accumulatedRef.current + ' ' + part
       },
       onError: (error) => {
-        setOverlay({ kind: 'error', text: messageOf(error.code, tRef.current) })
+        if (error.code === 'no-speech' || error.code === 'aborted') return // 非致命：由 onEnd 重启
+        if (isFatal(error.code)) {
+          fatalRef.current = true
+          setOverlay({ kind: 'error', text: messageOf(error.code, tRef.current) })
+        }
       },
       onEnd: () => {
+        if (fatalRef.current) {
+          fatalRef.current = false
+          setRecording(false)
+          return
+        }
+        if (pressedRef.current) {
+          // 仍按住：立即重启，继续下一段听写（跨短语累积）
+          recognizer.start()
+          return
+        }
+        // 已松手：交付累积文本
+        const text = accumulatedRef.current
+        accumulatedRef.current = ''
         setRecording(false)
+        setOverlay({ kind: null, text: '' })
+        deliver(text)
       },
     })
     recognizerRef.current = recognizer
@@ -86,6 +114,8 @@ export function RecorderButton({ inputActions, input, t }: RecorderButtonProps) 
       return
     }
     pressedRef.current = true
+    fatalRef.current = false
+    accumulatedRef.current = ''
     setOverlay({ kind: null, text: '' })
     recognizerRef.current?.start()
   }
@@ -115,6 +145,7 @@ export function RecorderButton({ inputActions, input, t }: RecorderButtonProps) 
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerEnd}
         onPointerCancel={handlePointerEnd}
+        onContextMenu={(event) => { event.preventDefault() }}
       >
         <svg className={css.icon} viewBox="0 0 24 24" aria-hidden="true">
           <path

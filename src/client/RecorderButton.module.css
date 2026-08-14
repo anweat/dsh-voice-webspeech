@@ -12,6 +12,9 @@
   justify-content: center;
   width: 28px;
   height: 28px;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
   border: none;
   border-radius: 6px;
   background: transparent;

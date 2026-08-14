@@ -68,7 +68,7 @@ export function createWebSpeechRecognizer(lang: string, hooks: RecognitionHooks)
     if (recognition === undefined) {
       recognition = new ctor()
       recognition.lang = lang
-      recognition.continuous = true
+      recognition.continuous = false
       recognition.interimResults = true
       recognition.maxAlternatives = 1
       recognition.onstart = () => { hooks.onStart?.() }
