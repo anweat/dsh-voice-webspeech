@@ -33,8 +33,7 @@ export function apply(ctx: Context): void {
   ctx.effect(() => {
     return ctx.slots.inject('settings.plugin.item', () => ctx.slots.register({
       name: 'settings.plugin.item',
-      id: 'voice-webspeech',
-      order: 30,
+      key: 'voice-webspeech',
       locale: LOCALE_NS,
       inject: () => ({}),
     }, SettingsCard))
