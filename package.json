@@ -1,7 +1,7 @@
 {
   "name": "dsh-voice-webspeech",
-  "version": "0.1.0",
-  "description": "DSH Web 语音输入插件：零服务端、零密钥、零模型下载，直接使用浏览器内置 Web Speech API（Edge=微软 Azure 语音，Chrome=Google 语音）。",
+  "version": "0.1.1",
+  "description": "DSH Web 语音输入插件：默认使用浏览器内置 Web Speech API，也可按需下载本地模型离线识别。",
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
@@ -38,6 +38,7 @@
     "lib/**/*.js",
     "lib/types/**/*.d.ts",
     "cordis.patch.yml",
+    "docs",
     "src",
     "README.md",
     "LICENSE"

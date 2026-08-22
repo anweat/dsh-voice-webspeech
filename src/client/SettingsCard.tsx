@@ -47,7 +47,7 @@ export function SettingsCard({ t }: SettingsCardProps) {
   }
 
   return (
-    <li className={open ? css.card + ' ' + css.cardOpen : css.card}>
+    <div className={open ? css.card + ' ' + css.cardOpen : css.card}>
       <button type="button" className={css.header} aria-expanded={open} onClick={() => { setOpen(!open) }}>
         <span className={css.headText}>
           <span className={css.name}>{t('settingsTitle')}</span>
@@ -150,6 +150,6 @@ export function SettingsCard({ t }: SettingsCardProps) {
           </div>
         </div>
       )}
-    </li>
+    </div>
   )
 }

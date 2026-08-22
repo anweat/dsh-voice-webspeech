@@ -2,7 +2,7 @@
  * dsh-voice-webspeech — client half.
  *
  * Registers the mic button in the composer tool row (conversation.input.left)
- * and a plugin-config card (settings.plugin.item, inside 设置 → 插件 → 可配置).
+ * and a browser-only settings tab (settings.plugins.tab).
  * The recognizer is the browser's built-in Web Speech API: Edge = Microsoft
  * Azure speech, Chrome = Google/Chrome speech.
  */

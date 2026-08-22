@@ -4,9 +4,12 @@
 [![DSH](https://img.shields.io/badge/DSH-%3E%3D0.1.0--rc.3%20%3C0.2.0-5b8def)](https://github.com/deepseek-ai/deepseek-harness)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 
-DSH Web GUI 的**纯浏览器语音输入**插件：零服务端、零 API Key、零模型下载、零 Python。
+DSH Web GUI 的**浏览器语音输入**插件：默认零服务端、零 API Key、零模型下载、零 Python，
+也可在设置中按需下载本地模型用于离线识别。
 按住输入框旁的麦克风按钮说话，松手即把语音转成文字——转写完全由**浏览器内置语音识别**
 （Web Speech API）完成：
+
+![DSH 输入框中的语音按钮](./docs/images/dsh-voice-input.png)
 
 | 浏览器 | 实际语音服务 |
 |---|---|
@@ -78,6 +81,10 @@ pnpm dsh plugin --profile web add ./dsh-voice-webspeech-0.1.0.tgz
 
 ## 设置（设置 → 语音输入（Web Speech））
 
+![语音输入插件设置](./docs/images/dsh-voice-settings.png)
+
+设置页以独立的“语音输入”标签挂载，不依赖 host settings namespace；偏好保存在浏览器本地。
+
 | 项 | 默认 | 说明 |
 |---|---|---|
 | 识别语言 | zh-CN | 普通话/粤语/繁体/英/日/韩/法/德/西/俄 |
@@ -108,4 +115,3 @@ pnpm run typecheck
 
 - v0.1：按住说话 + 连续听写 + 追加/自动发送 + 多语言 + 实时反馈 ✅
 - 后续：本地 ASR 可选后端（SenseVoice/Whisper）；TTS 语音朗读回复；快捷键按住
-
